@@ -1,13 +1,12 @@
 import express from "express"
-import { PrismaClient } from "@prisma/client"
 import { v1Router } from "./v1"
+import dotenv from "dotenv"
 
 
 const app = express()
-const client = new PrismaClient()
 
 app.use(express.json())
-
+dotenv.config()
 
 
 
