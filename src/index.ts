@@ -9,6 +9,8 @@ const client = new PrismaClient()
 app.use(express.json())
 
 
+
+
 app.use('/api/v1',v1Router)
 
 
