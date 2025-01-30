@@ -4,6 +4,10 @@ import dotenv from "dotenv"
 import { main } from "./pdfTest"
 import { GoogleAuth } from 'google-auth-library';
 import { ChatVertexAI } from "@langchain/google-vertexai";
+import { VertexAIEmbeddings } from "@langchain/google-vertexai";
+import {QdrantClient} from '@qdrant/js-client-rest';
+
+
 
 
 
@@ -11,8 +15,17 @@ import { ChatVertexAI } from "@langchain/google-vertexai";
   const llm = new ChatVertexAI({
     model: "gemini-1.5-flash",
     temperature: 0,
-    apiKey:'AIzaSyDWicQlGLATs21SNbJeafSm-litjsFck74'
+    apiKey:process.env.GEMINI_API
   });
+
+  const embeddings = new VertexAIEmbeddings({
+    model: "text-embedding-004"
+  });
+
+  const client = new QdrantClient({
+    url: process.env.QDRANY_URL,
+    apiKey:process.env.QDRANT_KEY
+});
   
 
 const app = express()
