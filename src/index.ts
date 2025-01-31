@@ -6,6 +6,8 @@ import { GoogleAuth } from 'google-auth-library';
 import { ChatVertexAI } from "@langchain/google-vertexai";
 import { VertexAIEmbeddings } from "@langchain/google-vertexai";
 import {QdrantClient} from '@qdrant/js-client-rest';
+import { QdrantVectorStore } from "@langchain/qdrant";
+
 
 
 
@@ -23,10 +25,21 @@ import {QdrantClient} from '@qdrant/js-client-rest';
   });
 
   const client = new QdrantClient({
-    url: process.env.QDRANY_URL,
+    url: 'https://9998d475-d66e-4dfc-b5fb-4da33df563b5.us-east4-0.gcp.cloud.qdrant.io:6333',
     apiKey:process.env.QDRANT_KEY
+
 });
   
+
+ async function vectorStore()
+ {
+    await QdrantVectorStore.fromExistingCollection(embeddings, {
+  url: process.env.QDRANT_URL,
+  collectionName: "gemini_embeddings",
+});
+ }
+
+ vectorStore()
 
 const app = express()
 
@@ -46,4 +59,5 @@ main()
 
 app.listen(3003,()=>{
     console.log('server running')
+    console.log(process.env.QDRANT_URL,process.env.QDRANT_KEY)
 })
