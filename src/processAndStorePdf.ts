@@ -5,7 +5,7 @@ import { QdrantVectorStore } from "@langchain/qdrant";
 import { VertexAIEmbeddings } from "@langchain/google-vertexai";
 const pdfPath = "./Full_Stack_Engineer_Internship_Assignment.pdf";
 
-export async function main() {
+export async function processAndStorePdf() {
   try {
     // Step 1: Load PDF
     const loader = new PDFLoader(pdfPath);
@@ -37,8 +37,8 @@ export async function main() {
       embeddings,
       {
         client: new QdrantClient({
-          url: 'https://9998d475-d66e-4dfc-b5fb-4da33df563b5.us-east4-0.gcp.cloud.qdrant.io:6333',
-          apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIiwiZXhwIjoxNzQ2MDQyMzMxfQ.IhRRIbkJnYe6nuN6byTr9QZZIBOTnZEGlQItegeJj8M'
+          url: process.env.QDRANT_URL,
+          apiKey:process.env.QDRANT_KEY
         }),
         collectionName: "gemini_embeddings",
       }

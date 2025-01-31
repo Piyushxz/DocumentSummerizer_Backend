@@ -7,14 +7,14 @@ import jwt from 'jsonwebtoken'
 import { GoogleAuth } from 'google-auth-library';
 import { ChatVertexAI } from "@langchain/google-vertexai";
 import { VertexAIEmbeddings } from "@langchain/google-vertexai";
-import {QdrantClient} from '@qdrant/js-client-rest';
 import { QdrantVectorStore } from "@langchain/qdrant";
-import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
-import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import * as path from 'path';
 import * as fs from 'fs';
-import { main } from "../pdfTest";
+import { processAndStorePdf } from "../processAndStorePdf";
+import dotenv from "dotenv"
 
+
+dotenv.config()
 
 
 
@@ -37,13 +37,11 @@ const serviceAccount = {
     "universe_domain": "googleapis.com"
 };
 
-// Initialize Google Auth
 const auth = new GoogleAuth({
     scopes: ['https://www.googleapis.com/auth/cloud-platform'],
     credentials :serviceAccount
 });
 
-// Correctly pass the auth object when initializing VertexAI
 const llm = new ChatVertexAI({
     model: "gemini-1.5-flash",
     temperature: 0,
@@ -53,13 +51,12 @@ export const embeddings = new VertexAIEmbeddings({
     model: "text-embedding-004",
 });
 
-// Your Qdrant client setup and other logic goes here
 
 async function vectorStore() {
     await QdrantVectorStore.fromExistingCollection(embeddings, {
-        url: 'https://9998d475-d66e-4dfc-b5fb-4da33df563b5.us-east4-0.gcp.cloud.qdrant.io:6333',
+        url: process.env.QDRANT_URL,
         collectionName: "gemini_embeddings",
-        apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIiwiZXhwIjoxNzQ2MDQyMzMxfQ.IhRRIbkJnYe6nuN6byTr9QZZIBOTnZEGlQItegeJj8M'
+        apiKey: process.env.QDRANT_KEY
     });
 }
 
@@ -112,7 +109,7 @@ if (fs.existsSync(pdfPath)) {
 
 // processAndStore();
 
-main()
+
 
 v1Router.post('/user/signup',async (req,res)=>{
 
