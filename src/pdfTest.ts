@@ -1,28 +1,52 @@
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
-
-// Path to the PDF file (could be user-uploaded)
+import { QdrantClient } from "@qdrant/js-client-rest";
+import { QdrantVectorStore } from "@langchain/qdrant";
+import { VertexAIEmbeddings } from "@langchain/google-vertexai";
 const pdfPath = "./Full_Stack_Engineer_Internship_Assignment.pdf";
 
 export async function main() {
   try {
-    // Step 1: Load the PDF
+    // Step 1: Load PDF
     const loader = new PDFLoader(pdfPath);
     const docs = await loader.load();
     console.log("Loaded Docs:", docs);
 
-    // Step 2: Split the loaded document into chunks
+    // Step 2: Split Documents
     const textSplitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 1000, // Customize chunk size as needed
-      chunkOverlap: 200, // Customize chunk overlap as needed
+      chunkSize: 1000,
+      chunkOverlap: 200,
     });
-
     const splitDocs = await textSplitter.splitDocuments(docs);
     console.log("Split Docs:", splitDocs);
 
+    // Step 3: Extract Text and Metadata
+    const texts = splitDocs.map((doc) => doc.pageContent);
+    const metadata = splitDocs.map((doc) => doc.metadata);
+
+
+
+    const embeddings = new VertexAIEmbeddings({
+      model: "text-embedding-004",
+      
+    });
+    // Step 5: Store Embeddings in Qdrant
+    const vectorStore = await QdrantVectorStore.fromTexts(
+      texts,
+      metadata,
+      embeddings,
+      {
+        client: new QdrantClient({
+          url: 'https://9998d475-d66e-4dfc-b5fb-4da33df563b5.us-east4-0.gcp.cloud.qdrant.io:6333',
+          apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIiwiZXhwIjoxNzQ2MDQyMzMxfQ.IhRRIbkJnYe6nuN6byTr9QZZIBOTnZEGlQItegeJj8M'
+        }),
+        collectionName: "gemini_embeddings",
+      }
+    );
+
+    console.log("Embeddings successfully stored in Qdrant!");
+
   } catch (error) {
-    console.error("Error processing the PDF:", error);
+    console.error("Error processing file:", error);
   }
 }
-
-main();
