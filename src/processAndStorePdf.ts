@@ -43,6 +43,7 @@ export async function processAndStorePdf() {
         collectionName: "gemini_embeddings",
       }
     );
+    processAndStorePdf()
 
     console.log("Embeddings successfully stored in Qdrant!");
 

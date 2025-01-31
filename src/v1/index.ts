@@ -5,12 +5,14 @@ import bcryptjs from 'bcryptjs'
 export const v1Router = Router()
 import jwt from 'jsonwebtoken'
 import { GoogleAuth } from 'google-auth-library';
-import { ChatVertexAI } from "@langchain/google-vertexai";
+import { ChatVertexAI, VertexAI } from "@langchain/google-vertexai";
 import { VertexAIEmbeddings } from "@langchain/google-vertexai";
 import { QdrantVectorStore } from "@langchain/qdrant";
-import * as path from 'path';
-import * as fs from 'fs';
-import { processAndStorePdf } from "../processAndStorePdf";
+import { pull } from "langchain/hub";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
+
+
+
 import dotenv from "dotenv"
 
 
@@ -41,61 +43,19 @@ export const embeddings = new VertexAIEmbeddings({
 
 
 async function vectorStore() {
-    await QdrantVectorStore.fromExistingCollection(embeddings, {
+    const vecStore = await QdrantVectorStore.fromExistingCollection(embeddings, {
         url: process.env.QDRANT_URL,
         collectionName: "gemini_embeddings",
         apiKey: process.env.QDRANT_KEY
     });
+
+    return vecStore
 }
 
-vectorStore();
 
 const prismaClient = new PrismaClient();
 
-const pdfPath = path.resolve(__dirname, '../../Full_Stack_Engineer_Internship_Assignment.pdf');
 
-if (fs.existsSync(pdfPath)) {
-    console.log("File exists:", pdfPath);
-} else {
-    console.log("File does not exist:", pdfPath);
-}
-// async function processAndStore() {
-//    try {
-//         // Step 1: Load PDF
-//         const loader = new PDFLoader(pdfPath);
-//         const docs = await loader.load();
-//         console.log("Loaded Docs:", docs);
-
-//         // Step 2: Split Documents
-//         const textSplitter = new RecursiveCharacterTextSplitter({
-//             chunkSize: 1000,
-//             chunkOverlap: 200,
-//         });
-//         const splitDocs = await textSplitter.splitDocuments(docs);
-//         console.log("Split Docs:", splitDocs);
-
-//         // Step 3: Extract Text and Metadata
-//         const texts = splitDocs.map((doc) => doc.pageContent);
-//         const metadata = splitDocs.map((doc) => doc.metadata);
-
-//         // Step 4: Store Embeddings in Qdrant
-//         const vectorStore = await QdrantVectorStore.fromTexts(
-//             texts,
-//             metadata,
-//             embeddings,
-//             {
-//                 client: new QdrantClient({ url:'https://9998d475-d66e-4dfc-b5fb-4da33df563b5.us-east4-0.gcp.cloud.qdrant.io:6333', apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIiwiZXhwIjoxNzQ2MDQyMzMxfQ.IhRRIbkJnYe6nuN6byTr9QZZIBOTnZEGlQItegeJj8M' }),
-//                 collectionName: "gemini_embeddings",
-//             }
-//         );
-
-//         console.log("Embeddings successfully stored in Qdrant!");
-//     } catch (error) {
-//         console.error("Error processing and storing embeddings:", error);
-//     }
-// }
-
-// processAndStore();
 
 
 
@@ -179,3 +139,53 @@ v1Router.post('/user/signin',async (req,res)=>{
 
 
 })
+
+v1Router.post('/query', async (req, res) => {
+    const { query } = req.body; // Get the query from the request body
+  
+    try {
+      // Step 1: Embed the query using the embeddings model
+      const embeddedQuery = await embeddings.embedQuery(query);
+  
+      // Step 2: Perform similarity search on the vector store with the embedded query
+      const vecStore = await vectorStore(); // Ensure the vector store is set up correctly
+      const result = await vecStore.similaritySearchVectorWithScore(embeddedQuery, 5); // Fetch top 5 results with scores
+      
+      // Extract the pageContent from the result
+      const contextFromSearch = result
+        .map(item => item[0]?.pageContent) // item[0] is the Document object
+        .filter(content => content) // Filter out any undefined content
+        .join("\n"); // Combine the page content into a single string
+      
+      console.log("Context From Search:", contextFromSearch);
+  
+      // Step 4: Combine the context into a final full context string
+      const fullContext = `\n${contextFromSearch}`;
+      console.log("Full Context:", fullContext);
+  
+
+
+      const prompt = [
+        [{ role: 'system', content: `Context: ${fullContext}` }],
+        [{ role: 'user', content: `Query: ${query}` }],
+      ];
+      
+      const promptTemplate = await pull<ChatPromptTemplate>("rlm/rag-prompt");
+
+      const messages = await promptTemplate.invoke({ question: query, context: fullContext });
+
+      const response = await llm.invoke(messages);
+      console.log("Answer Result:", response.content);
+  
+  
+      // Step 8: Send back the generated answer and search results as response
+      res.status(200).json({  answer:response.content,results: result });
+    } catch (error) {
+      console.error("Error in query:", error);
+      res.status(500).json({message:"Error searchinf"})
+
+    }
+  });
+
+
+  
