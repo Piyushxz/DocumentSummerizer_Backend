@@ -19,7 +19,7 @@ import fs from "fs";
 
 
 import dotenv from "dotenv"
-
+import { processAndStorePdf2 } from "../textToVector";
 
 dotenv.config()
 
@@ -157,14 +157,17 @@ v1Router.post("/upload", upload.single("file"), async (req, res) => {
         const filePath = req.file.path;
         const fileName = path.basename(filePath);
     
-        await processAndStorePdf(fileName);
+        await processAndStorePdf2(fileName);
     
-        // Delete file after processing
-        fs.unlink(filePath, (err) => {
-          if (err) console.error("Error deleting file:", err);
-          else console.log("Temporary file deleted:", filePath);
-        });
-    
+        setTimeout(() => {
+            fs.unlink(filePath, (err) => {
+              if (err) {
+                console.error("Error deleting file:", err);
+              } else {
+                console.log(`Temporary file deleted: ${filePath}`);
+              }
+            });
+          }, 1000);
         res.json({ message: "File processed successfully!" });
       } catch (error) {
         console.error("Error processing file:", error);
@@ -173,26 +176,22 @@ v1Router.post("/upload", upload.single("file"), async (req, res) => {
   });
 
 v1Router.post('/query', async (req, res) => {
-    const { query } = req.body; // Get the query from the request body
+    const { query } = req.body; 
   
     try {
-      // Step 1: Embed the query using the embeddings model
       const embeddedQuery = await embeddings.embedQuery(query);
   
-      // Step 2: Perform similarity search on the vector store with the embedded query
-      const vecStore = await vectorStore(); // Ensure the vector store is set up correctly
-      const result = await vecStore.similaritySearchVectorWithScore(embeddedQuery, 5); // Fetch top 5 results with scores
+      const vecStore = await vectorStore(); 
+      const result = await vecStore.similaritySearchVectorWithScore(embeddedQuery, 5); 
       
       console.log("results",result)
-      // Extract the pageContent from the result
       const contextFromSearch = result
-        .map(item => item[0]?.pageContent) // item[0] is the Document object
-        .filter(content => content) // Filter out any undefined content
-        .join("\n"); // Combine the page content into a single string
+        .map(item => item[0]?.pageContent) 
+        .filter(content => content) 
+        .join("\n"); 
       
       console.log("Context From Search:", contextFromSearch);
-  
-      // Step 4: Combine the context into a final full context string
+
       const fullContext = `\n${contextFromSearch}`;
       console.log("Full Context:", fullContext);
   
@@ -211,7 +210,6 @@ v1Router.post('/query', async (req, res) => {
       console.log("Answer Result:", response.content);
   
   
-      // Step 8: Send back the generated answer and search results as response
       res.status(200).json({  answer:response.content,results: result });
     } catch (error) {
       console.error("Error in query:", error);

@@ -25,10 +25,10 @@ const google_vertexai_2 = require("@langchain/google-vertexai");
 const qdrant_1 = require("@langchain/qdrant");
 const hub_1 = require("langchain/hub");
 const upload_1 = __importDefault(require("../upload"));
-const processAndStorePdf_1 = require("../processAndStorePdf");
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const dotenv_1 = __importDefault(require("dotenv"));
+const textToVector_1 = require("../textToVector");
 dotenv_1.default.config();
 exports.v1Router.get('/', (req, res) => {
     res.json("Hey");
@@ -115,14 +115,17 @@ exports.v1Router.post("/upload", upload_1.default.single("file"), (req, res) => 
         }
         const filePath = req.file.path;
         const fileName = path_1.default.basename(filePath);
-        yield (0, processAndStorePdf_1.processAndStorePdf)(fileName);
-        // Delete file after processing
-        fs_1.default.unlink(filePath, (err) => {
-            if (err)
-                console.error("Error deleting file:", err);
-            else
-                console.log("Temporary file deleted:", filePath);
-        });
+        yield (0, textToVector_1.processAndStorePdf2)(fileName);
+        setTimeout(() => {
+            fs_1.default.unlink(filePath, (err) => {
+                if (err) {
+                    console.error("Error deleting file:", err);
+                }
+                else {
+                    console.log(`Temporary file deleted: ${filePath}`);
+                }
+            });
+        }, 1000);
         res.json({ message: "File processed successfully!" });
     }
     catch (error) {
@@ -131,21 +134,17 @@ exports.v1Router.post("/upload", upload_1.default.single("file"), (req, res) => 
     }
 }));
 exports.v1Router.post('/query', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { query } = req.body; // Get the query from the request body
+    const { query } = req.body;
     try {
-        // Step 1: Embed the query using the embeddings model
         const embeddedQuery = yield exports.embeddings.embedQuery(query);
-        // Step 2: Perform similarity search on the vector store with the embedded query
-        const vecStore = yield vectorStore(); // Ensure the vector store is set up correctly
-        const result = yield vecStore.similaritySearchVectorWithScore(embeddedQuery, 5); // Fetch top 5 results with scores
+        const vecStore = yield vectorStore();
+        const result = yield vecStore.similaritySearchVectorWithScore(embeddedQuery, 5);
         console.log("results", result);
-        // Extract the pageContent from the result
         const contextFromSearch = result
-            .map(item => { var _a; return (_a = item[0]) === null || _a === void 0 ? void 0 : _a.pageContent; }) // item[0] is the Document object
-            .filter(content => content) // Filter out any undefined content
-            .join("\n"); // Combine the page content into a single string
+            .map(item => { var _a; return (_a = item[0]) === null || _a === void 0 ? void 0 : _a.pageContent; })
+            .filter(content => content)
+            .join("\n");
         console.log("Context From Search:", contextFromSearch);
-        // Step 4: Combine the context into a final full context string
         const fullContext = `\n${contextFromSearch}`;
         console.log("Full Context:", fullContext);
         const supportPrompt = `
@@ -158,7 +157,6 @@ exports.v1Router.post('/query', (req, res) => __awaiter(void 0, void 0, void 0, 
         const messages = yield promptTemplate.invoke({ question: query, context: supportPrompt });
         const response = yield llm.invoke(messages);
         console.log("Answer Result:", response.content);
-        // Step 8: Send back the generated answer and search results as response
         res.status(200).json({ answer: response.content, results: result });
     }
     catch (error) {
