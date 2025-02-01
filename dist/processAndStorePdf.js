@@ -8,17 +8,29 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.processAndStorePdf = processAndStorePdf;
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const pdf_1 = require("@langchain/community/document_loaders/fs/pdf");
 const textsplitters_1 = require("@langchain/textsplitters");
 const js_client_rest_1 = require("@qdrant/js-client-rest");
 const qdrant_1 = require("@langchain/qdrant");
 const google_vertexai_1 = require("@langchain/google-vertexai");
-const pdfPath = "./Full_Stack_Engineer_Internship_Assignment.pdf";
-function processAndStorePdf() {
+// Define the temporary directory
+const tempDir = "./folder";
+function processAndStorePdf(pdfFilename) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            // Construct the full file path
+            const pdfPath = path_1.default.join(tempDir, pdfFilename);
+            if (!fs_1.default.existsSync(pdfPath)) {
+                throw new Error(`File not found: ${pdfPath}`);
+            }
+            console.log(`Processing file: ${pdfPath}`);
             // Step 1: Load PDF
             const loader = new pdf_1.PDFLoader(pdfPath);
             const docs = yield loader.load();
@@ -33,6 +45,7 @@ function processAndStorePdf() {
             // Step 3: Extract Text and Metadata
             const texts = splitDocs.map((doc) => doc.pageContent);
             const metadata = splitDocs.map((doc) => doc.metadata);
+            // Step 4: Generate Embeddings
             const embeddings = new google_vertexai_1.VertexAIEmbeddings({
                 model: "text-embedding-004",
             });
@@ -40,12 +53,18 @@ function processAndStorePdf() {
             const vectorStore = yield qdrant_1.QdrantVectorStore.fromTexts(texts, metadata, embeddings, {
                 client: new js_client_rest_1.QdrantClient({
                     url: process.env.QDRANT_URL,
-                    apiKey: process.env.QDRANT_KEY
+                    apiKey: process.env.QDRANT_KEY,
                 }),
                 collectionName: "gemini_embeddings",
             });
-            processAndStorePdf();
             console.log("Embeddings successfully stored in Qdrant!");
+            // Step 6: Delete the file after processing
+            fs_1.default.unlink(pdfPath, (err) => {
+                if (err)
+                    console.error("Error deleting file:", err);
+                else
+                    console.log(`Temporary file deleted: ${pdfPath}`);
+            });
         }
         catch (error) {
             console.error("Error processing file:", error);

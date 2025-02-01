@@ -24,6 +24,10 @@ const google_vertexai_1 = require("@langchain/google-vertexai");
 const google_vertexai_2 = require("@langchain/google-vertexai");
 const qdrant_1 = require("@langchain/qdrant");
 const hub_1 = require("langchain/hub");
+const upload_1 = __importDefault(require("../upload"));
+const processAndStorePdf_1 = require("../processAndStorePdf");
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 exports.v1Router.get('/', (req, res) => {
@@ -103,6 +107,28 @@ exports.v1Router.post('/user/signin', (req, res) => __awaiter(void 0, void 0, vo
         res.status(500).json({ message: "server erro" });
     }
 }));
+exports.v1Router.post("/upload", upload_1.default.single("file"), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        if (!req.file) {
+            res.status(400).json({ error: "No file uploaded" });
+            return;
+        }
+        const filePath = req.file.path;
+        const fileName = path_1.default.basename(filePath);
+        yield (0, processAndStorePdf_1.processAndStorePdf)(fileName);
+        // Delete the file after processing
+        fs_1.default.unlink(filePath, (err) => {
+            if (err)
+                console.error("Error deleting file:", err);
+            else
+                console.log("Temporary file deleted:", filePath);
+        });
+        res.json({ message: "File processed successfully!" });
+    }
+    catch (error) {
+        res.status(500).json({ error: "Error processing file" });
+    }
+}));
 exports.v1Router.post('/query', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { query } = req.body; // Get the query from the request body
     try {
@@ -111,6 +137,7 @@ exports.v1Router.post('/query', (req, res) => __awaiter(void 0, void 0, void 0, 
         // Step 2: Perform similarity search on the vector store with the embedded query
         const vecStore = yield vectorStore(); // Ensure the vector store is set up correctly
         const result = yield vecStore.similaritySearchVectorWithScore(embeddedQuery, 5); // Fetch top 5 results with scores
+        console.log("results", result);
         // Extract the pageContent from the result
         const contextFromSearch = result
             .map(item => { var _a; return (_a = item[0]) === null || _a === void 0 ? void 0 : _a.pageContent; }) // item[0] is the Document object
@@ -120,16 +147,18 @@ exports.v1Router.post('/query', (req, res) => __awaiter(void 0, void 0, void 0, 
         // Step 4: Combine the context into a final full context string
         const fullContext = `\n${contextFromSearch}`;
         console.log("Full Context:", fullContext);
-        const prompt = [
-            [{ role: 'system', content: `Context: ${fullContext}` }],
-            [{ role: 'user', content: `Query: ${query}` }],
-        ];
+        const supportPrompt = `
+      Context: ${fullContext}\n\n
+      Query: ${query}\n\n
+      Answer the question based on the provided document. If necessary, enhance your response with general knowledge, 
+      but prioritize the information from the document.
+    `;
         const promptTemplate = yield (0, hub_1.pull)("rlm/rag-prompt");
-        const messages = yield promptTemplate.invoke({ question: query, context: fullContext });
+        const messages = yield promptTemplate.invoke({ question: query, context: supportPrompt });
         const response = yield llm.invoke(messages);
         console.log("Answer Result:", response.content);
         // Step 8: Send back the generated answer and search results as response
-        res.status(200).json({ results: result, answer: response.content });
+        res.status(200).json({ answer: response.content, results: result });
     }
     catch (error) {
         console.error("Error in query:", error);

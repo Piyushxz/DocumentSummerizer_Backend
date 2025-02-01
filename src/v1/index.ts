@@ -10,6 +10,11 @@ import { VertexAIEmbeddings } from "@langchain/google-vertexai";
 import { QdrantVectorStore } from "@langchain/qdrant";
 import { pull } from "langchain/hub";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
+import upload from "../upload";
+import { processAndStorePdf } from "../processAndStorePdf";
+import path from "path";
+import fs from "fs";
+
 
 
 
@@ -140,6 +145,32 @@ v1Router.post('/user/signin',async (req,res)=>{
 
 })
 
+
+
+v1Router.post("/upload", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+         res.status(400).json({ error: "No file uploaded" });
+         return;
+      }
+  
+      const filePath = req.file.path;
+      const fileName = path.basename(filePath); 
+
+      await processAndStorePdf(fileName);
+  
+      // Delete the file after processing
+      fs.unlink(filePath, (err) => {
+        if (err) console.error("Error deleting file:", err);
+        else console.log("Temporary file deleted:", filePath);
+      });
+  
+      res.json({ message: "File processed successfully!" });
+    } catch (error) {
+      res.status(500).json({ error: "Error processing file" });
+    }
+  });
+
 v1Router.post('/query', async (req, res) => {
     const { query } = req.body; // Get the query from the request body
   
@@ -151,6 +182,7 @@ v1Router.post('/query', async (req, res) => {
       const vecStore = await vectorStore(); // Ensure the vector store is set up correctly
       const result = await vecStore.similaritySearchVectorWithScore(embeddedQuery, 5); // Fetch top 5 results with scores
       
+      console.log("results",result)
       // Extract the pageContent from the result
       const contextFromSearch = result
         .map(item => item[0]?.pageContent) // item[0] is the Document object
@@ -163,16 +195,16 @@ v1Router.post('/query', async (req, res) => {
       const fullContext = `\n${contextFromSearch}`;
       console.log("Full Context:", fullContext);
   
-
-
-      const prompt = [
-        [{ role: 'system', content: `Context: ${fullContext}` }],
-        [{ role: 'user', content: `Query: ${query}` }],
-      ];
+      const supportPrompt = `
+      Context: ${fullContext}\n\n
+      Query: ${query}\n\n
+      Answer the question based on the provided document. If necessary, enhance your response with general knowledge, 
+      but prioritize the information from the document.
+    `;
       
       const promptTemplate = await pull<ChatPromptTemplate>("rlm/rag-prompt");
 
-      const messages = await promptTemplate.invoke({ question: query, context: fullContext });
+      const messages = await promptTemplate.invoke({ question: query, context: supportPrompt });
 
       const response = await llm.invoke(messages);
       console.log("Answer Result:", response.content);
