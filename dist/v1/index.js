@@ -116,7 +116,7 @@ exports.v1Router.post("/upload", upload_1.default.single("file"), (req, res) => 
         const filePath = req.file.path;
         const fileName = path_1.default.basename(filePath);
         yield (0, processAndStorePdf_1.processAndStorePdf)(fileName);
-        // Delete the file after processing
+        // Delete file after processing
         fs_1.default.unlink(filePath, (err) => {
             if (err)
                 console.error("Error deleting file:", err);
@@ -126,6 +126,7 @@ exports.v1Router.post("/upload", upload_1.default.single("file"), (req, res) => 
         res.json({ message: "File processed successfully!" });
     }
     catch (error) {
+        console.error("Error processing file:", error);
         res.status(500).json({ error: "Error processing file" });
     }
 }));

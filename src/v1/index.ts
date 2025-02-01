@@ -149,26 +149,27 @@ v1Router.post('/user/signin',async (req,res)=>{
 
 v1Router.post("/upload", upload.single("file"), async (req, res) => {
     try {
-      if (!req.file) {
-         res.status(400).json({ error: "No file uploaded" });
-         return;
+        if (!req.file) {
+           res.status(400).json({ error: "No file uploaded" });
+           return
+        }
+    
+        const filePath = req.file.path;
+        const fileName = path.basename(filePath);
+    
+        await processAndStorePdf(fileName);
+    
+        // Delete file after processing
+        fs.unlink(filePath, (err) => {
+          if (err) console.error("Error deleting file:", err);
+          else console.log("Temporary file deleted:", filePath);
+        });
+    
+        res.json({ message: "File processed successfully!" });
+      } catch (error) {
+        console.error("Error processing file:", error);
+        res.status(500).json({ error: "Error processing file" });
       }
-  
-      const filePath = req.file.path;
-      const fileName = path.basename(filePath); 
-
-      await processAndStorePdf(fileName);
-  
-      // Delete the file after processing
-      fs.unlink(filePath, (err) => {
-        if (err) console.error("Error deleting file:", err);
-        else console.log("Temporary file deleted:", filePath);
-      });
-  
-      res.json({ message: "File processed successfully!" });
-    } catch (error) {
-      res.status(500).json({ error: "Error processing file" });
-    }
   });
 
 v1Router.post('/query', async (req, res) => {

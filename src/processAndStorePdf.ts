@@ -6,10 +6,15 @@ import { QdrantClient } from "@qdrant/js-client-rest";
 import { QdrantVectorStore } from "@langchain/qdrant";
 import { VertexAIEmbeddings } from "@langchain/google-vertexai";
 
-// Define the temporary directory
-const tempDir = "./folder";
+// Define the temporary directory correctly
+const tempDir = path.resolve(__dirname, "../temp");  // Adjusted to resolve from the root folder
 
-export async function processAndStorePdf(pdfFilename:string) {
+// Ensure tempDir exists
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true });
+}
+
+export async function processAndStorePdf(pdfFilename: string) {
   try {
     // Construct the full file path
     const pdfPath = path.join(tempDir, pdfFilename);
@@ -23,7 +28,7 @@ export async function processAndStorePdf(pdfFilename:string) {
     // Step 1: Load PDF
     const loader = new PDFLoader(pdfPath);
     const docs = await loader.load();
-    console.log("Loaded Docs:", docs);
+    console.log("Loaded Docs:", docs.length);
 
     // Step 2: Split Documents
     const textSplitter = new RecursiveCharacterTextSplitter({
@@ -31,26 +36,22 @@ export async function processAndStorePdf(pdfFilename:string) {
       chunkOverlap: 200,
     });
     const splitDocs = await textSplitter.splitDocuments(docs);
-    console.log("Split Docs:", splitDocs);
+    console.log("Split Docs:", splitDocs.length);
 
-    // Step 3: Extract Text and Metadata
-    const texts = splitDocs.map((doc) => doc.pageContent);
-    const metadata = splitDocs.map((doc) => doc.metadata);
-
-    // Step 4: Generate Embeddings
+    // Step 3: Generate Embeddings
     const embeddings = new VertexAIEmbeddings({
       model: "text-embedding-004",
     });
 
-    // Step 5: Store Embeddings in Qdrant
+    // Step 4: Store Embeddings in Qdrant
     const vectorStore = await QdrantVectorStore.fromTexts(
-      texts,
-      metadata,
+      splitDocs.map((doc) => doc.pageContent),
+      splitDocs.map((doc) => doc.metadata),
       embeddings,
       {
         client: new QdrantClient({
-          url: process.env.QDRANT_URL,
-          apiKey: process.env.QDRANT_KEY,
+          url: process.env.QDRANT_URL!,
+          apiKey: process.env.QDRANT_KEY!,
         }),
         collectionName: "gemini_embeddings",
       }
@@ -58,7 +59,7 @@ export async function processAndStorePdf(pdfFilename:string) {
 
     console.log("Embeddings successfully stored in Qdrant!");
 
-    // Step 6: Delete the file after processing
+    // Step 5: Delete the file after processing
     fs.unlink(pdfPath, (err) => {
       if (err) console.error("Error deleting file:", err);
       else console.log(`Temporary file deleted: ${pdfPath}`);
