@@ -21,9 +21,7 @@ const js_client_rest_1 = require("@qdrant/js-client-rest");
 const qdrant_1 = require("@langchain/qdrant");
 const google_vertexai_1 = require("@langchain/google-vertexai");
 const client_1 = require("@prisma/client");
-// Define the temporary directory correctly
 const tempDir = path_1.default.resolve(__dirname, "../temp"); // Adjusted to resolve from the root folder
-// Ensure tempDir exists
 if (!fs_1.default.existsSync(tempDir)) {
     fs_1.default.mkdirSync(tempDir, { recursive: true });
 }

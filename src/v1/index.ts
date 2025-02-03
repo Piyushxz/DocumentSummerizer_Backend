@@ -13,15 +13,14 @@ import { ChatPromptTemplate } from "@langchain/core/prompts";
 import upload from "../upload";
 import { processAndStorePdf } from "../processAndStorePdf";
 import path from "path";
-import fs from "fs";
-
 
 
 
 import dotenv from "dotenv"
-import { processAndStorePdf2 } from "../textToVector";
 import userMiddleware from "../middlewares/userMiddleware";
 
+
+const client = new PrismaClient()
 dotenv.config()
 
 
@@ -146,14 +145,58 @@ v1Router.post('/user/signin',async (req,res)=>{
 
 })
 
+v1Router.get("/documents",userMiddleware,async (req,res)=>{
 
+    const userId = req.userId;
+
+    try{
+
+        const documents = await client.document.findMany({
+            where:{
+                userId:userId
+            }
+        }) 
+
+
+        res.status(200).json({documents})
+
+    }catch(err)
+    {   
+        res.status(500).json({message:"Error getting documents"})
+        console.log(err)
+    }
+})
+
+v1Router.delete("/documents",userMiddleware,async (req,res)=>{
+    const userId = req.userId;
+    const documentId = req.body.documentId
+
+    try{
+
+
+        const deleteDoc = await client.document.delete({
+            where:{
+                userId:userId,
+                documentId:documentId
+            }
+        })
+
+        res.status(200).json({message:"Document deleted successfully",deleteDoc})
+
+    }catch(err)
+    {   
+        res.status(500).json({message:"Could not delete documents"})
+        console.log(err)
+    }
+})
 
 v1Router.post("/upload", upload.single("file"),userMiddleware, async (req, res) => {
 
     const userId = req.userId
     const documentName = req.body.documentName
-    if(!userId){
-        res.status(404).json({message:"Invalid Token"})
+    
+    if(!userId || !documentName){
+        res.status(404).json({message:"Invalid Token or no document name"})
 
         return;
     }
@@ -168,15 +211,7 @@ v1Router.post("/upload", upload.single("file"),userMiddleware, async (req, res) 
     
         await processAndStorePdf(fileName,userId,documentName);
     
-        setTimeout(() => {
-            fs.unlink(filePath, (err) => {
-              if (err) {
-                console.error("Error deleting file:", err);
-              } else {
-                console.log(`Temporary file deleted: ${filePath}`);
-              }
-            });
-          }, 1000);
+
         res.json({ message: "File processed successfully!" });
       } catch (error) {
         console.error("Error processing file:", error);
