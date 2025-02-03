@@ -151,6 +151,7 @@ v1Router.post('/user/signin',async (req,res)=>{
 v1Router.post("/upload", upload.single("file"),userMiddleware, async (req, res) => {
 
     const userId = req.userId
+    const documentName = req.body.documentName
     if(!userId){
         res.status(404).json({message:"Invalid Token"})
 
@@ -165,7 +166,7 @@ v1Router.post("/upload", upload.single("file"),userMiddleware, async (req, res) 
         const filePath = req.file.path;
         const fileName = path.basename(filePath);
     
-        await processAndStorePdf(fileName,userId);
+        await processAndStorePdf(fileName,userId,documentName);
     
         setTimeout(() => {
             fs.unlink(filePath, (err) => {

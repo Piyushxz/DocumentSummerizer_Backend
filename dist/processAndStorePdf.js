@@ -20,13 +20,15 @@ const textsplitters_1 = require("@langchain/textsplitters");
 const js_client_rest_1 = require("@qdrant/js-client-rest");
 const qdrant_1 = require("@langchain/qdrant");
 const google_vertexai_1 = require("@langchain/google-vertexai");
+const client_1 = require("@prisma/client");
 // Define the temporary directory correctly
 const tempDir = path_1.default.resolve(__dirname, "../temp"); // Adjusted to resolve from the root folder
 // Ensure tempDir exists
 if (!fs_1.default.existsSync(tempDir)) {
     fs_1.default.mkdirSync(tempDir, { recursive: true });
 }
-function processAndStorePdf(pdfFilename, userId) {
+const client = new client_1.PrismaClient();
+function processAndStorePdf(pdfFilename, userId, documentName) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             // Construct the full file path
@@ -50,9 +52,14 @@ function processAndStorePdf(pdfFilename, userId) {
             const embeddings = new google_vertexai_1.VertexAIEmbeddings({
                 model: "text-embedding-004",
             });
-            console.log(splitDocs);
             // Step 4: Store Embeddings in Qdrant
-            const vectorStore = yield qdrant_1.QdrantVectorStore.fromTexts(splitDocs.map((doc) => doc.pageContent), splitDocs.map((doc) => doc.metadata), embeddings, {
+            const doc = yield client.document.create({
+                data: {
+                    documentName: documentName,
+                    userId: userId
+                }
+            });
+            const vectorStore = yield qdrant_1.QdrantVectorStore.fromTexts(splitDocs.map((doc) => doc.pageContent), splitDocs.map((doc) => (Object.assign(Object.assign({}, doc.metadata), { documentId: doc.id, userId: userId }))), embeddings, {
                 client: new js_client_rest_1.QdrantClient({
                     url: process.env.QDRANT_URL,
                     apiKey: process.env.QDRANT_KEY,

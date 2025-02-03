@@ -110,6 +110,7 @@ exports.v1Router.post('/user/signin', (req, res) => __awaiter(void 0, void 0, vo
 }));
 exports.v1Router.post("/upload", upload_1.default.single("file"), userMiddleware_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const userId = req.userId;
+    const documentName = req.body.documentName;
     if (!userId) {
         res.status(404).json({ message: "Invalid Token" });
         return;
@@ -121,7 +122,7 @@ exports.v1Router.post("/upload", upload_1.default.single("file"), userMiddleware
         }
         const filePath = req.file.path;
         const fileName = path_1.default.basename(filePath);
-        yield (0, processAndStorePdf_1.processAndStorePdf)(fileName, userId);
+        yield (0, processAndStorePdf_1.processAndStorePdf)(fileName, userId, documentName);
         setTimeout(() => {
             fs_1.default.unlink(filePath, (err) => {
                 if (err) {

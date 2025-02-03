@@ -5,16 +5,17 @@ import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { QdrantClient } from "@qdrant/js-client-rest";
 import { QdrantVectorStore } from "@langchain/qdrant";
 import { VertexAIEmbeddings } from "@langchain/google-vertexai";
+import { PrismaClient } from "@prisma/client";
 
-// Define the temporary directory correctly
 const tempDir = path.resolve(__dirname, "../temp");  // Adjusted to resolve from the root folder
 
-// Ensure tempDir exists
 if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
 }
 
-export async function processAndStorePdf(pdfFilename: string,userId:string) {
+const client = new PrismaClient()
+
+export async function processAndStorePdf(pdfFilename: string,userId:string,documentName:string) {
   try {
     // Construct the full file path
     const pdfPath = path.join(tempDir, pdfFilename);
@@ -43,14 +44,25 @@ export async function processAndStorePdf(pdfFilename: string,userId:string) {
       model: "text-embedding-004",
     });
 
-    let metadata = splitDocs.map((doc)=>doc.metadata)
-    console.log("metadata",metadata)
     // Step 4: Store Embeddings in Qdrant
+
+
+    const doc = await client.document.create({
+      data:{
+        documentName:documentName,
+        userId:userId
+      }
+    })
     const vectorStore = await QdrantVectorStore.fromTexts(
       splitDocs.map((doc) => doc.pageContent),
-      splitDocs.map((doc) => doc.metadata),
+      splitDocs.map((doc) => ({
+        ...doc.metadata,  
+        documentId: doc.id,  
+        userId: userId,  
+      })),
       embeddings,
       {
+
         client: new QdrantClient({
           url: process.env.QDRANT_URL!,
           apiKey: process.env.QDRANT_KEY!,
@@ -58,7 +70,6 @@ export async function processAndStorePdf(pdfFilename: string,userId:string) {
         collectionName: "pdf_embeddings",
       }
     );
-
     console.log("Embeddings successfully stored in Qdrant!");
 
     // Step 5: Delete the file after processing
