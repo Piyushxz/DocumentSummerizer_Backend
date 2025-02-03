@@ -26,7 +26,7 @@ const tempDir = path_1.default.resolve(__dirname, "../temp"); // Adjusted to res
 if (!fs_1.default.existsSync(tempDir)) {
     fs_1.default.mkdirSync(tempDir, { recursive: true });
 }
-function processAndStorePdf(pdfFilename) {
+function processAndStorePdf(pdfFilename, userId) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             // Construct the full file path
@@ -50,6 +50,7 @@ function processAndStorePdf(pdfFilename) {
             const embeddings = new google_vertexai_1.VertexAIEmbeddings({
                 model: "text-embedding-004",
             });
+            console.log(splitDocs);
             // Step 4: Store Embeddings in Qdrant
             const vectorStore = yield qdrant_1.QdrantVectorStore.fromTexts(splitDocs.map((doc) => doc.pageContent), splitDocs.map((doc) => doc.metadata), embeddings, {
                 client: new js_client_rest_1.QdrantClient({

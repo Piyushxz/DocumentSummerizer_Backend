@@ -61,7 +61,7 @@ function processAndStorePdf2(pdfFilename) {
                     url: process.env.QDRANT_URL,
                     apiKey: process.env.QDRANT_KEY,
                 }),
-                collectionName: "pdf_embeddings",
+                collectionName: "gemini_embeddings",
             });
             console.log("Embeddings successfully stored in Qdrant!");
             // Step 5: Delete the file after processing

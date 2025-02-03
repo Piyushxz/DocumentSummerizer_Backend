@@ -25,10 +25,11 @@ const google_vertexai_2 = require("@langchain/google-vertexai");
 const qdrant_1 = require("@langchain/qdrant");
 const hub_1 = require("langchain/hub");
 const upload_1 = __importDefault(require("../upload"));
+const processAndStorePdf_1 = require("../processAndStorePdf");
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const dotenv_1 = __importDefault(require("dotenv"));
-const textToVector_1 = require("../textToVector");
+const userMiddleware_1 = __importDefault(require("../middlewares/userMiddleware"));
 dotenv_1.default.config();
 exports.v1Router.get('/', (req, res) => {
     res.json("Hey");
@@ -107,7 +108,12 @@ exports.v1Router.post('/user/signin', (req, res) => __awaiter(void 0, void 0, vo
         res.status(500).json({ message: "server erro" });
     }
 }));
-exports.v1Router.post("/upload", upload_1.default.single("file"), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.v1Router.post("/upload", upload_1.default.single("file"), userMiddleware_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userId = req.userId;
+    if (!userId) {
+        res.status(404).json({ message: "Invalid Token" });
+        return;
+    }
     try {
         if (!req.file) {
             res.status(400).json({ error: "No file uploaded" });
@@ -115,7 +121,7 @@ exports.v1Router.post("/upload", upload_1.default.single("file"), (req, res) => 
         }
         const filePath = req.file.path;
         const fileName = path_1.default.basename(filePath);
-        yield (0, textToVector_1.processAndStorePdf2)(fileName);
+        yield (0, processAndStorePdf_1.processAndStorePdf)(fileName, userId);
         setTimeout(() => {
             fs_1.default.unlink(filePath, (err) => {
                 if (err) {

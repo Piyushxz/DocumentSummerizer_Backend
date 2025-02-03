@@ -1,1 +1,1 @@
-{"root":["./global.d.ts","./src/index.ts","./src/processandstorepdf.ts","./src/streampdf.ts","./src/texttovector.ts","./src/upload.ts","./src/utils.ts","./src/v1/index.ts"],"version":"5.7.3"}
+{"root":["./global.d.ts","./src/index.ts","./src/processandstorepdf.ts","./src/streampdf.ts","./src/texttovector.ts","./src/upload.ts","./src/utils.ts","./src/middlewares/usermiddleware.ts","./src/v1/index.ts"],"version":"5.7.3"}

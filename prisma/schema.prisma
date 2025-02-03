@@ -13,4 +13,18 @@ model User{
   username String @unique
   email String @unique
   password String
+  documents Document[]
+}
+
+
+model Document{
+  documentId String @id @default(uuid())
+  name String 
+  uploadedAt DateTime @default(now())
+  user User @relation(fields: [userId],references: [id])
+  userId String
+
+
+
+
 }

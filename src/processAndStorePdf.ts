@@ -14,7 +14,7 @@ if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
 }
 
-export async function processAndStorePdf(pdfFilename: string) {
+export async function processAndStorePdf(pdfFilename: string,userId:string) {
   try {
     // Construct the full file path
     const pdfPath = path.join(tempDir, pdfFilename);
@@ -43,6 +43,8 @@ export async function processAndStorePdf(pdfFilename: string) {
       model: "text-embedding-004",
     });
 
+    let metadata = splitDocs.map((doc)=>doc.metadata)
+    console.log("metadata",metadata)
     // Step 4: Store Embeddings in Qdrant
     const vectorStore = await QdrantVectorStore.fromTexts(
       splitDocs.map((doc) => doc.pageContent),

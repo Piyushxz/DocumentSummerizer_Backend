@@ -20,6 +20,7 @@ import fs from "fs";
 
 import dotenv from "dotenv"
 import { processAndStorePdf2 } from "../textToVector";
+import userMiddleware from "../middlewares/userMiddleware";
 
 dotenv.config()
 
@@ -147,7 +148,14 @@ v1Router.post('/user/signin',async (req,res)=>{
 
 
 
-v1Router.post("/upload", upload.single("file"), async (req, res) => {
+v1Router.post("/upload", upload.single("file"),userMiddleware, async (req, res) => {
+
+    const userId = req.userId
+    if(!userId){
+        res.status(404).json({message:"Invalid Token"})
+
+        return;
+    }
     try {
         if (!req.file) {
            res.status(400).json({ error: "No file uploaded" });
@@ -157,7 +165,7 @@ v1Router.post("/upload", upload.single("file"), async (req, res) => {
         const filePath = req.file.path;
         const fileName = path.basename(filePath);
     
-        await processAndStorePdf2(fileName);
+        await processAndStorePdf(fileName,userId);
     
         setTimeout(() => {
             fs.unlink(filePath, (err) => {
