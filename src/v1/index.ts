@@ -178,9 +178,9 @@ v1Router.delete("/documents", userMiddleware, async (req, res) => {
     }
 
     try {
-        // const deleteDoc = await client.document.deleteOne({
-        //     where: { userId, documentId }
-        // });
+         const deleteDoc = await client.document.delete({
+             where: { userId, documentId }
+         });
 
         const qdrantClient = new QdrantClient({
             url: process.env.QDRANT_URL!,
