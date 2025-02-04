@@ -51,13 +51,18 @@ function processAndStorePdf(pdfFilename, userId, documentName) {
                 model: "text-embedding-004",
             });
             // Step 4: Store Embeddings in Qdrant
-            const doc = yield client.document.create({
+            const newDocumentWithChat = yield client.document.create({
                 data: {
                     documentName: documentName,
-                    userId: userId
-                }
+                    userId: userId,
+                    queries: {
+                        create: {
+                            userId: userId,
+                        }
+                    }
+                },
             });
-            const documentId = doc.documentId;
+            const documentId = newDocumentWithChat.documentId;
             const vectorStore = yield qdrant_1.QdrantVectorStore.fromTexts(splitDocs.map((doc) => doc.pageContent), splitDocs.map((doc) => (Object.assign(Object.assign({}, doc.metadata), { documentId: documentId, userId: userId }))), embeddings, {
                 client: new js_client_rest_1.QdrantClient({
                     url: process.env.QDRANT_URL,

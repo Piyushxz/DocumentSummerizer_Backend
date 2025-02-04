@@ -47,14 +47,21 @@ export async function processAndStorePdf(pdfFilename: string,userId:string,docum
     // Step 4: Store Embeddings in Qdrant
 
 
-    const doc = await client.document.create({
-      data:{
-        documentName:documentName,
-        userId:userId
-      }
-    })
+    const newDocumentWithChat = await client.document.create({
+      data: {
+        documentName: documentName,
+        userId: userId,
+        queries:{
+          create:{
+            userId:userId,
+            
+          }
+        }
+      },
+    });
+    
 
-    const documentId = doc.documentId
+    const documentId = newDocumentWithChat.documentId
     const vectorStore = await QdrantVectorStore.fromTexts(
       splitDocs.map((doc) => doc.pageContent),
       splitDocs.map((doc) => ({

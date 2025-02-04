@@ -132,9 +132,9 @@ exports.v1Router.delete("/documents", userMiddleware_1.default, (req, res) => __
         return;
     }
     try {
-        // const deleteDoc = await client.document.deleteOne({
-        //     where: { userId, documentId }
-        // });
+        const deleteDoc = yield client.document.delete({
+            where: { userId, documentId }
+        });
         const qdrantClient = new js_client_rest_1.QdrantClient({
             url: process.env.QDRANT_URL,
             apiKey: process.env.QDRANT_KEY,
@@ -175,8 +175,14 @@ exports.v1Router.post("/upload", upload_1.default.single("file"), userMiddleware
         res.status(500).json({ error: "Error processing file" });
     }
 }));
-exports.v1Router.post('/query', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.v1Router.post('/query/:documentId', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("HIT");
     const { query } = req.body;
+    const documentId = req.params.documentId;
+    if (!query) {
+        res.status(400).json({ message: "Query is required" });
+        return;
+    }
     try {
         const embeddedQuery = yield exports.embeddings.embedQuery(query);
         const vecStore = yield vectorStore();
@@ -199,6 +205,17 @@ exports.v1Router.post('/query', (req, res) => __awaiter(void 0, void 0, void 0, 
         const messages = yield promptTemplate.invoke({ question: query, context: supportPrompt });
         const response = yield llm.invoke(messages);
         console.log("Answer Result:", response.content);
+        const QueryRoom = yield client.queries.findFirst({ where: { docId: documentId } });
+        if (!QueryRoom) {
+            res.status(500).json({ message: "Could not find query room" });
+            return;
+        }
+        yield client.message.createMany({
+            data: [
+                { sentBy: "User", content: query, QuerieID: QueryRoom.id },
+                { sentBy: "Bot", content: response.content, QuerieID: QueryRoom.id }
+            ]
+        });
         res.status(200).json({ answer: response.content, results: result });
     }
     catch (error) {

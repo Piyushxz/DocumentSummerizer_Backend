@@ -233,8 +233,15 @@ v1Router.post("/upload", upload.single("file"),userMiddleware, async (req, res) 
       }
   });
 
-v1Router.post('/query', async (req, res) => {
+v1Router.post('/query/:documentId', async (req, res) => {
     const { query } = req.body; 
+    const documentId = req.params.documentId
+
+    if (!query) {
+         res.status(400).json({ message: "Query is required" });
+         return
+    }
+    
   
     try {
       const embeddedQuery = await embeddings.embedQuery(query);
@@ -266,8 +273,22 @@ v1Router.post('/query', async (req, res) => {
 
       const response = await llm.invoke(messages);
       console.log("Answer Result:", response.content);
+
+
+      const QueryRoom = await client.queries.findFirst({where:{docId:documentId}})
   
-  
+        if(!QueryRoom){
+            res.status(500).json({message:"Could not find query room"})
+            return;
+        }
+      await client.message.createMany({
+        data:[
+            {sentBy:"User",content:query,QuerieID:QueryRoom.id},
+            {sentBy:"Bot",content:response.content,QuerieID:QueryRoom.id}
+
+        ]
+      })
+
       res.status(200).json({  answer:response.content,results: result });
     } catch (error) {
       console.error("Error in query:", error);
