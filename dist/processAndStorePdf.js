@@ -57,7 +57,8 @@ function processAndStorePdf(pdfFilename, userId, documentName) {
                     userId: userId
                 }
             });
-            const vectorStore = yield qdrant_1.QdrantVectorStore.fromTexts(splitDocs.map((doc) => doc.pageContent), splitDocs.map((doc) => (Object.assign(Object.assign({}, doc.metadata), { documentId: doc.id, userId: userId }))), embeddings, {
+            const documentId = doc.documentId;
+            const vectorStore = yield qdrant_1.QdrantVectorStore.fromTexts(splitDocs.map((doc) => doc.pageContent), splitDocs.map((doc) => (Object.assign(Object.assign({}, doc.metadata), { documentId: documentId, userId: userId }))), embeddings, {
                 client: new js_client_rest_1.QdrantClient({
                     url: process.env.QDRANT_URL,
                     apiKey: process.env.QDRANT_KEY,

@@ -1,6 +1,7 @@
 import express from "express"
 import { v1Router } from "./v1"
 import dotenv from "dotenv"
+import cors from 'cors'
 
 
 
@@ -12,7 +13,7 @@ import dotenv from "dotenv"
 
 
 const app = express()
-
+app.use(cors())
 app.use(express.json())
 dotenv.config()
 

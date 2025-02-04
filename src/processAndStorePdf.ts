@@ -53,11 +53,13 @@ export async function processAndStorePdf(pdfFilename: string,userId:string,docum
         userId:userId
       }
     })
+
+    const documentId = doc.documentId
     const vectorStore = await QdrantVectorStore.fromTexts(
       splitDocs.map((doc) => doc.pageContent),
       splitDocs.map((doc) => ({
         ...doc.metadata,  
-        documentId: doc.id,  
+        documentId: documentId,  
         userId: userId,  
       })),
       embeddings,

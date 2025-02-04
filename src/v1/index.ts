@@ -13,7 +13,7 @@ import { ChatPromptTemplate } from "@langchain/core/prompts";
 import upload from "../upload";
 import { processAndStorePdf } from "../processAndStorePdf";
 import path from "path";
-
+import { QdrantClient } from "@qdrant/js-client-rest";
 
 
 import dotenv from "dotenv"
@@ -22,6 +22,7 @@ import userMiddleware from "../middlewares/userMiddleware";
 
 const client = new PrismaClient()
 dotenv.config()
+
 
 
 
@@ -167,28 +168,41 @@ v1Router.get("/documents",userMiddleware,async (req,res)=>{
     }
 })
 
-v1Router.delete("/documents",userMiddleware,async (req,res)=>{
+v1Router.delete("/documents", userMiddleware, async (req, res) => {
     const userId = req.userId;
-    const documentId = req.body.documentId
+    const documentId = req.body.documentId;
 
-    try{
-
-
-        const deleteDoc = await client.document.delete({
-            where:{
-                userId:userId,
-                documentId:documentId
-            }
-        })
-
-        res.status(200).json({message:"Document deleted successfully",deleteDoc})
-
-    }catch(err)
-    {   
-        res.status(500).json({message:"Could not delete documents"})
-        console.log(err)
+    if (!documentId) {
+         res.status(400).json({ message: "documentId is required" });
+         return;
     }
-})
+
+    try {
+        // const deleteDoc = await client.document.deleteOne({
+        //     where: { userId, documentId }
+        // });
+
+        const qdrantClient = new QdrantClient({
+            url: process.env.QDRANT_URL!,
+            apiKey: process.env.QDRANT_KEY!,
+        });
+
+        const deleteVectors = await qdrantClient.delete("pdf_embeddings", {
+            filter: {
+                must: [{ key: "metadata.documentId", match: { value: documentId } }],
+            },
+        });
+
+        res.status(200).json({
+            message: "Document and embeddings deleted successfully",
+        });
+
+    } catch (err) {
+        console.error("Error deleting document:", err);
+        res.status(500).json({ message: "Could not delete documents" });
+    }
+});
+
 
 v1Router.post("/upload", upload.single("file"),userMiddleware, async (req, res) => {
 

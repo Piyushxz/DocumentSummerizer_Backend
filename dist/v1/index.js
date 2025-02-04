@@ -27,6 +27,7 @@ const hub_1 = require("langchain/hub");
 const upload_1 = __importDefault(require("../upload"));
 const processAndStorePdf_1 = require("../processAndStorePdf");
 const path_1 = __importDefault(require("path"));
+const js_client_rest_1 = require("@qdrant/js-client-rest");
 const dotenv_1 = __importDefault(require("dotenv"));
 const userMiddleware_1 = __importDefault(require("../middlewares/userMiddleware"));
 const client = new client_1.PrismaClient();
@@ -121,6 +122,35 @@ exports.v1Router.get("/documents", userMiddleware_1.default, (req, res) => __awa
     catch (err) {
         res.status(500).json({ message: "Error getting documents" });
         console.log(err);
+    }
+}));
+exports.v1Router.delete("/documents", userMiddleware_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userId = req.userId;
+    const documentId = req.body.documentId;
+    if (!documentId) {
+        res.status(400).json({ message: "documentId is required" });
+        return;
+    }
+    try {
+        // const deleteDoc = await client.document.deleteOne({
+        //     where: { userId, documentId }
+        // });
+        const qdrantClient = new js_client_rest_1.QdrantClient({
+            url: process.env.QDRANT_URL,
+            apiKey: process.env.QDRANT_KEY,
+        });
+        const deleteVectors = yield qdrantClient.delete("pdf_embeddings", {
+            filter: {
+                must: [{ key: "metadata.documentId", match: { value: documentId } }],
+            },
+        });
+        res.status(200).json({
+            message: "Document and embeddings deleted successfully",
+        });
+    }
+    catch (err) {
+        console.error("Error deleting document:", err);
+        res.status(500).json({ message: "Could not delete documents" });
     }
 }));
 exports.v1Router.post("/upload", upload_1.default.single("file"), userMiddleware_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
