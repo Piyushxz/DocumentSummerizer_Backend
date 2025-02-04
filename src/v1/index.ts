@@ -203,6 +203,39 @@ v1Router.delete("/documents", userMiddleware, async (req, res) => {
     }
 });
 
+v1Router.get('/history/:queryRoomID',userMiddleware,async (req,res)=>{
+    const userId = req.userId;
+    const roomID = Number(req.params.queryRoomID)
+
+
+    try{
+        const messages = await client.message.findMany({
+            where:{
+                QuerieID:roomID,
+                queries:{
+                    userId:userId
+                },
+                
+                
+            },
+            orderBy:{
+                createdAt:'asc'
+            },
+            take:50
+            
+            
+        },
+    
+        )
+
+        res.status(200).json({messages})
+    }
+    catch(err){
+        console.log(err)
+        res.status(500).json({message:"Could not find chats / server error"})
+    }
+
+})
 
 v1Router.post("/upload", upload.single("file"),userMiddleware, async (req, res) => {
 

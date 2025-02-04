@@ -153,6 +153,25 @@ exports.v1Router.delete("/documents", userMiddleware_1.default, (req, res) => __
         res.status(500).json({ message: "Could not delete documents" });
     }
 }));
+exports.v1Router.get('/history/:queryRoomID', userMiddleware_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userId = req.userId;
+    const roomID = Number(req.params.queryRoomID);
+    try {
+        const messages = yield client.message.findMany({
+            where: {
+                QuerieID: roomID,
+                queries: {
+                    userId: userId
+                }
+            }
+        });
+        res.status(200).json({ messages });
+    }
+    catch (err) {
+        console.log(err);
+        res.status(500).json({ message: "Could not find chats / server error" });
+    }
+}));
 exports.v1Router.post("/upload", upload_1.default.single("file"), userMiddleware_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const userId = req.userId;
     const documentName = req.body.documentName;
@@ -176,7 +195,6 @@ exports.v1Router.post("/upload", upload_1.default.single("file"), userMiddleware
     }
 }));
 exports.v1Router.post('/query/:documentId', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("HIT");
     const { query } = req.body;
     const documentId = req.params.documentId;
     if (!query) {
