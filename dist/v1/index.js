@@ -50,7 +50,7 @@ function vectorStore() {
     return __awaiter(this, void 0, void 0, function* () {
         const vecStore = yield qdrant_1.QdrantVectorStore.fromExistingCollection(exports.embeddings, {
             url: process.env.QDRANT_URL,
-            collectionName: "gemini_embeddings",
+            collectionName: "pdf_embeddings",
             apiKey: process.env.QDRANT_KEY
         });
         return vecStore;
@@ -162,8 +162,12 @@ exports.v1Router.get('/history/:queryRoomID', userMiddleware_1.default, (req, re
                 QuerieID: roomID,
                 queries: {
                     userId: userId
-                }
-            }
+                },
+            },
+            orderBy: {
+                createdAt: 'asc'
+            },
+            take: 50
         });
         res.status(200).json({ messages });
     }
@@ -194,17 +198,25 @@ exports.v1Router.post("/upload", upload_1.default.single("file"), userMiddleware
         res.status(500).json({ error: "Error processing file" });
     }
 }));
-exports.v1Router.post('/query/:documentId', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.v1Router.post('/query/:documentId', userMiddleware_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { query } = req.body;
     const documentId = req.params.documentId;
-    if (!query) {
+    const userId = req.userId;
+    if (!query || !userId) {
         res.status(400).json({ message: "Query is required" });
         return;
     }
+    console.log(documentId, userId);
     try {
         const embeddedQuery = yield exports.embeddings.embedQuery(query);
         const vecStore = yield vectorStore();
-        const result = yield vecStore.similaritySearchVectorWithScore(embeddedQuery, 5);
+        const filter = {
+            must: [
+                { key: "metadata.documentId", match: { value: "223121ae-ccaf-4261-bac3-baf1b5b5822e" } },
+                { key: "metadata.userId", match: { value: "778ad256-fda1-429c-a91a-1ab363e2d0e6" } }
+            ]
+        };
+        const result = yield vecStore.similaritySearchVectorWithScore(embeddedQuery, 5, filter);
         console.log("results", result);
         const contextFromSearch = result
             .map(item => { var _a; return (_a = item[0]) === null || _a === void 0 ? void 0 : _a.pageContent; })
@@ -223,17 +235,17 @@ exports.v1Router.post('/query/:documentId', (req, res) => __awaiter(void 0, void
         const messages = yield promptTemplate.invoke({ question: query, context: supportPrompt });
         const response = yield llm.invoke(messages);
         console.log("Answer Result:", response.content);
-        const QueryRoom = yield client.queries.findFirst({ where: { docId: documentId } });
-        if (!QueryRoom) {
-            res.status(500).json({ message: "Could not find query room" });
-            return;
-        }
-        yield client.message.createMany({
-            data: [
-                { sentBy: "User", content: query, QuerieID: QueryRoom.id },
-                { sentBy: "Bot", content: response.content, QuerieID: QueryRoom.id }
-            ]
-        });
+        //   const QueryRoom = await client.queries.findFirst({where:{docId:documentId}})
+        //     if(!QueryRoom){
+        //         res.status(500).json({message:"Could not find query room"})
+        //         return;
+        //     }
+        //   await client.message.createMany({
+        //     data:[
+        //         {sentBy:"User",content:query,QuerieID:QueryRoom.id},
+        //         {sentBy:"Bot",content:response.content,QuerieID:QueryRoom.id}
+        //     ]
+        //   })
         res.status(200).json({ answer: response.content, results: result });
     }
     catch (error) {

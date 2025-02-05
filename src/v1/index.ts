@@ -47,16 +47,16 @@ export const embeddings = new VertexAIEmbeddings({
     model: "text-embedding-004",
 });
 
-
 async function vectorStore() {
     const vecStore = await QdrantVectorStore.fromExistingCollection(embeddings, {
         url: process.env.QDRANT_URL,
-        collectionName: "gemini_embeddings",
+        collectionName: "pdf_embeddings",
         apiKey: process.env.QDRANT_KEY
     });
 
     return vecStore
 }
+
 
 
 const prismaClient = new PrismaClient();
@@ -266,21 +266,28 @@ v1Router.post("/upload", upload.single("file"),userMiddleware, async (req, res) 
       }
   });
 
-v1Router.post('/query/:documentId', async (req, res) => {
+v1Router.post('/query/:documentId',userMiddleware, async (req, res) => {
     const { query } = req.body; 
     const documentId = req.params.documentId
-
-    if (!query) {
+    const userId = req.userId
+    if (!query || !userId) {
          res.status(400).json({ message: "Query is required" });
          return
     }
     
+    console.log(documentId,userId)
   
     try {
       const embeddedQuery = await embeddings.embedQuery(query);
   
       const vecStore = await vectorStore(); 
-      const result = await vecStore.similaritySearchVectorWithScore(embeddedQuery, 5); 
+      const filter = {
+        must: [
+          { key: "metadata.documentId", match: { value: "223121ae-ccaf-4261-bac3-baf1b5b5822e" } },
+          { key: "metadata.userId", match: { value: "778ad256-fda1-429c-a91a-1ab363e2d0e6" } }
+        ]
+      };
+      const result = await vecStore.similaritySearchVectorWithScore(embeddedQuery, 5,filter); 
       
       console.log("results",result)
       const contextFromSearch = result
@@ -310,16 +317,16 @@ v1Router.post('/query/:documentId', async (req, res) => {
 
       const QueryRoom = await client.queries.findFirst({where:{docId:documentId}})
   
-        if(!QueryRoom){
-            res.status(500).json({message:"Could not find query room"})
+         if(!QueryRoom){
+             res.status(500).json({message:"Could not find query room"})
             return;
         }
       await client.message.createMany({
-        data:[
-            {sentBy:"User",content:query,QuerieID:QueryRoom.id},
+         data:[
+             {sentBy:"User",content:query,QuerieID:QueryRoom.id},
             {sentBy:"Bot",content:response.content,QuerieID:QueryRoom.id}
 
-        ]
+         ]
       })
 
       res.status(200).json({  answer:response.content,results: result });
