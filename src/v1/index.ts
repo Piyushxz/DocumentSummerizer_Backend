@@ -283,8 +283,8 @@ v1Router.post('/query/:documentId',userMiddleware, async (req, res) => {
       const vecStore = await vectorStore(); 
       const filter = {
         must: [
-          { key: "metadata.documentId", match: { value: "223121ae-ccaf-4261-bac3-baf1b5b5822e" } },
-          { key: "metadata.userId", match: { value: "778ad256-fda1-429c-a91a-1ab363e2d0e6" } }
+          { key: "metadata.documentId", match: { value:documentId } },
+          { key: "metadata.userId", match: { value: userId } }
         ]
       };
       const result = await vecStore.similaritySearchVectorWithScore(embeddedQuery, 5,filter); 

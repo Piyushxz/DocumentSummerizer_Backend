@@ -212,8 +212,8 @@ exports.v1Router.post('/query/:documentId', userMiddleware_1.default, (req, res)
         const vecStore = yield vectorStore();
         const filter = {
             must: [
-                { key: "metadata.documentId", match: { value: "223121ae-ccaf-4261-bac3-baf1b5b5822e" } },
-                { key: "metadata.userId", match: { value: "778ad256-fda1-429c-a91a-1ab363e2d0e6" } }
+                { key: "metadata.documentId", match: { value: documentId } },
+                { key: "metadata.userId", match: { value: userId } }
             ]
         };
         const result = yield vecStore.similaritySearchVectorWithScore(embeddedQuery, 5, filter);
@@ -235,17 +235,17 @@ exports.v1Router.post('/query/:documentId', userMiddleware_1.default, (req, res)
         const messages = yield promptTemplate.invoke({ question: query, context: supportPrompt });
         const response = yield llm.invoke(messages);
         console.log("Answer Result:", response.content);
-        //   const QueryRoom = await client.queries.findFirst({where:{docId:documentId}})
-        //     if(!QueryRoom){
-        //         res.status(500).json({message:"Could not find query room"})
-        //         return;
-        //     }
-        //   await client.message.createMany({
-        //     data:[
-        //         {sentBy:"User",content:query,QuerieID:QueryRoom.id},
-        //         {sentBy:"Bot",content:response.content,QuerieID:QueryRoom.id}
-        //     ]
-        //   })
+        const QueryRoom = yield client.queries.findFirst({ where: { docId: documentId } });
+        if (!QueryRoom) {
+            res.status(500).json({ message: "Could not find query room" });
+            return;
+        }
+        yield client.message.createMany({
+            data: [
+                { sentBy: "User", content: query, QuerieID: QueryRoom.id },
+                { sentBy: "Bot", content: response.content, QuerieID: QueryRoom.id }
+            ]
+        });
         res.status(200).json({ answer: response.content, results: result });
     }
     catch (error) {
