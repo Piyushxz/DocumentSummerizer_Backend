@@ -30,7 +30,7 @@ model Document{
 
 model Queries{
   id Int @id @default(autoincrement())
-  document Document @relation(fields: [docId],references: [documentId])
+  document Document @relation(fields: [docId],references: [documentId],onDelete: Cascade)
   docId String
   user User @relation(fields: [userId],references: [id])
   userId String
