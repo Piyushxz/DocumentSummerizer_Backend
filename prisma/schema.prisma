@@ -39,7 +39,7 @@ model Queries{
 
 model Message {
   id       String     @id @default(uuid())
-  queries Queries @relation(fields: [QuerieID], references: [id])
+  queries   Queries  @relation(fields: [QuerieID], references: [id], onDelete: Cascade)
   QuerieID Int
   sentBy      String     // 'user' or 'bot'
   content     String

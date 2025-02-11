@@ -135,7 +135,7 @@ v1Router.post('/user/signin',async (req,res)=>{
 
         const token = jwt.sign({id:foundUser.id},process.env.SECRET_KEY);
 
-        res.status(200).json({message:"Signed in", token : token})
+        res.status(200).json({message:"Signed in", token : token,username:foundUser.username})
 
 
         

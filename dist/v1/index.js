@@ -103,7 +103,7 @@ exports.v1Router.post('/user/signin', (req, res) => __awaiter(void 0, void 0, vo
             return;
         }
         const token = jsonwebtoken_1.default.sign({ id: foundUser.id }, process.env.SECRET_KEY);
-        res.status(200).json({ message: "Signed in", token: token });
+        res.status(200).json({ message: "Signed in", token: token, username: foundUser.username });
     }
     catch (e) {
         res.status(500).json({ message: "server erro" });
