@@ -155,6 +155,9 @@ v1Router.get("/documents",userMiddleware,async (req,res)=>{
         const documents = await client.document.findMany({
             where:{
                 userId:userId
+            },
+            orderBy:{
+                uploadedAt:'asc'
             }
         }) 
 
@@ -253,7 +256,10 @@ v1Router.post('/favourite',userMiddleware,async (req,res)=>{
                 userId: userID,
                 documentId: document
             },
-            select: { isArchived: true, documentName: true }
+            
+            
+            select: { isArchived: true, documentName: true },
+            
         });
 
         if (!existingDoc) {
@@ -296,14 +302,17 @@ v1Router.get('/favourite',userMiddleware,async (req,res)=>{
         }
 
 
-        const favs = await client.document.findMany({
+        const documents = await client.document.findMany({
             where:{
                 userId:userID,
                 isArchived:true
+            },
+            orderBy:{
+                uploadedAt:'asc'
             }
         })
 
-        res.status(201).json({favs})
+        res.status(201).json({documents})
     }
     catch(err){
         res.status(500).json({err:"Error getting archived documents"})

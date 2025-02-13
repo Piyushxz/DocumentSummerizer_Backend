@@ -115,6 +115,9 @@ exports.v1Router.get("/documents", userMiddleware_1.default, (req, res) => __awa
         const documents = yield client.document.findMany({
             where: {
                 userId: userId
+            },
+            orderBy: {
+                uploadedAt: 'asc'
             }
         });
         res.status(200).json({ documents });
@@ -189,7 +192,7 @@ exports.v1Router.post('/favourite', userMiddleware_1.default, (req, res) => __aw
                 userId: userID,
                 documentId: document
             },
-            select: { isArchived: true, documentName: true }
+            select: { isArchived: true, documentName: true },
         });
         if (!existingDoc) {
             res.status(404).json({ message: "Document not found" });
@@ -217,13 +220,16 @@ exports.v1Router.get('/favourite', userMiddleware_1.default, (req, res) => __awa
             res.status(403).json({ message: "Invalid token" });
             return;
         }
-        const favs = yield client.document.findMany({
+        const documents = yield client.document.findMany({
             where: {
                 userId: userID,
                 isArchived: true
+            },
+            orderBy: {
+                uploadedAt: 'asc'
             }
         });
-        res.status(201).json({ favs });
+        res.status(201).json({ documents });
     }
     catch (err) {
         res.status(500).json({ err: "Error getting archived documents" });
