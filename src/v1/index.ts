@@ -237,6 +237,78 @@ v1Router.get('/history/:queryRoomID',userMiddleware,async (req,res)=>{
 
 })
 
+v1Router.post('/favourite',userMiddleware,async (req,res)=>{
+
+    const userID = req.userId;
+    const document = req.body.document
+
+    try{
+        if(!userID || !document){
+            res.status(401).json({message:"Selected a valid token/DocumentID"})
+            return;
+        }
+
+        const existingDoc = await client.document.findUnique({
+            where: {
+                userId: userID,
+                documentId: document
+            },
+            select: { isArchived: true, documentName: true }
+        });
+
+        if (!existingDoc) {
+             res.status(404).json({ message: "Document not found" });
+             return;
+        }
+
+        
+        const doc = await client.document.update({
+            data:{
+                isArchived: !existingDoc.isArchived
+            },
+            where:{
+                userId:userID,
+                documentId:document
+            }
+        })
+
+        res.status(201).json({message:`${doc.documentName} has been updated`})
+
+
+
+    }catch{
+        res.status(500).json({message:"Could not update document"})
+    }
+
+})
+
+v1Router.get('/favourite',userMiddleware,async (req,res)=>{
+
+    const userID = req.userId;
+
+
+
+    try{
+
+        if(!userID ){
+            res.status(403).json({message:"Invalid token"})
+            return;
+        }
+
+
+        const favs = await client.document.findMany({
+            where:{
+                userId:userID,
+                isArchived:true
+            }
+        })
+
+        res.status(201).json({favs})
+    }
+    catch(err){
+        res.status(500).json({err:"Error getting archived documents"})
+    }
+})
 v1Router.post("/upload", upload.single("file"),userMiddleware, async (req, res) => {
 
     const userId = req.userId

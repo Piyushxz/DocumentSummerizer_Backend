@@ -176,6 +176,59 @@ exports.v1Router.get('/history/:queryRoomID', userMiddleware_1.default, (req, re
         res.status(500).json({ message: "Could not find chats / server error" });
     }
 }));
+exports.v1Router.post('/favourite', userMiddleware_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userID = req.userId;
+    const document = req.body.document;
+    try {
+        if (!userID || !document) {
+            res.status(401).json({ message: "Selected a valid token/DocumentID" });
+            return;
+        }
+        const existingDoc = yield client.document.findUnique({
+            where: {
+                userId: userID,
+                documentId: document
+            },
+            select: { isArchived: true, documentName: true }
+        });
+        if (!existingDoc) {
+            res.status(404).json({ message: "Document not found" });
+            return;
+        }
+        const doc = yield client.document.update({
+            data: {
+                isArchived: !existingDoc.isArchived
+            },
+            where: {
+                userId: userID,
+                documentId: document
+            }
+        });
+        res.status(201).json({ message: `${doc.documentName} has been updated` });
+    }
+    catch (_a) {
+        res.status(500).json({ message: "Could not update document" });
+    }
+}));
+exports.v1Router.get('/favourite', userMiddleware_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userID = req.userId;
+    try {
+        if (!userID) {
+            res.status(403).json({ message: "Invalid token" });
+            return;
+        }
+        const favs = yield client.document.findMany({
+            where: {
+                userId: userID,
+                isArchived: true
+            }
+        });
+        res.status(201).json({ favs });
+    }
+    catch (err) {
+        res.status(500).json({ err: "Error getting archived documents" });
+    }
+}));
 exports.v1Router.post("/upload", upload_1.default.single("file"), userMiddleware_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const userId = req.userId;
     const documentName = req.body.documentName;
