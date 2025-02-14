@@ -294,17 +294,17 @@ exports.v1Router.post('/query/:documentId', userMiddleware_1.default, (req, res)
         const messages = yield promptTemplate.invoke({ question: query, context: supportPrompt });
         const response = yield llm.invoke(messages);
         console.log("Answer Result:", response.content);
-        const QueryRoom = yield client.queries.findFirst({ where: { docId: documentId } });
-        if (!QueryRoom) {
-            res.status(500).json({ message: "Could not find query room" });
-            return;
-        }
-        yield client.message.createMany({
-            data: [
-                { sentBy: "User", content: query, QuerieID: QueryRoom.id },
-                { sentBy: "Bot", content: response.content, QuerieID: QueryRoom.id }
-            ]
-        });
+        //   const QueryRoom = await client.queries.findFirst({where:{docId:documentId}})
+        //      if(!QueryRoom){
+        //          res.status(500).json({message:"Could not find query room"})
+        //         return;
+        //     }
+        //   await client.message.createMany({
+        //      data:[
+        //          {sentBy:"User",content:query,QuerieID:QueryRoom.id},
+        //         {sentBy:"Bot",content:response.content,QuerieID:QueryRoom.id}
+        //      ]
+        //   })
         res.status(200).json({ answer: response.content, results: result });
     }
     catch (error) {

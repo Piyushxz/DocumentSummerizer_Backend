@@ -396,19 +396,19 @@ v1Router.post('/query/:documentId',userMiddleware, async (req, res) => {
       console.log("Answer Result:", response.content);
 
 
-      const QueryRoom = await client.queries.findFirst({where:{docId:documentId}})
+    //   const QueryRoom = await client.queries.findFirst({where:{docId:documentId}})
   
-         if(!QueryRoom){
-             res.status(500).json({message:"Could not find query room"})
-            return;
-        }
-      await client.message.createMany({
-         data:[
-             {sentBy:"User",content:query,QuerieID:QueryRoom.id},
-            {sentBy:"Bot",content:response.content,QuerieID:QueryRoom.id}
+    //      if(!QueryRoom){
+    //          res.status(500).json({message:"Could not find query room"})
+    //         return;
+    //     }
+    //   await client.message.createMany({
+    //      data:[
+    //          {sentBy:"User",content:query,QuerieID:QueryRoom.id},
+    //         {sentBy:"Bot",content:response.content,QuerieID:QueryRoom.id}
 
-         ]
-      })
+    //      ]
+    //   })
 
       res.status(200).json({  answer:response.content,results: result });
     } catch (error) {
