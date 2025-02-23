@@ -206,15 +206,21 @@ v1Router.delete("/documents", userMiddleware, async (req, res) => {
     }
 });
 
-v1Router.get('/history/:queryRoomID',userMiddleware,async (req,res)=>{
+v1Router.get('/history/:docId',userMiddleware,async (req,res)=>{
     const userId = req.userId;
-    const roomID = Number(req.params.queryRoomID)
+    const docId = req.params.docId
 
 
     try{
+
+        const QueryRoomID = await client.queries.findFirst({
+            where:{
+                docId:docId
+            }
+        })
         const messages = await client.message.findMany({
             where:{
-                QuerieID:roomID,
+                QuerieID:QueryRoomID?.id,
                 queries:{
                     userId:userId
                 },
@@ -396,19 +402,19 @@ v1Router.post('/query/:documentId',userMiddleware, async (req, res) => {
       console.log("Answer Result:", response.content);
 
 
-    //   const QueryRoom = await client.queries.findFirst({where:{docId:documentId}})
+      const QueryRoom = await client.queries.findFirst({where:{docId:documentId}})
   
-    //      if(!QueryRoom){
-    //          res.status(500).json({message:"Could not find query room"})
-    //         return;
-    //     }
-    //   await client.message.createMany({
-    //      data:[
-    //          {sentBy:"User",content:query,QuerieID:QueryRoom.id},
-    //         {sentBy:"Bot",content:response.content,QuerieID:QueryRoom.id}
+         if(!QueryRoom){
+              res.status(500).json({message:"Could not find query room"})
+             return;
+         }
+       await client.message.createMany({
+         data:[
+             {sentBy:"User",content:query,QuerieID:QueryRoom.id},
+           {sentBy:"Bot",content:response.content,QuerieID:QueryRoom.id}
 
-    //      ]
-    //   })
+        ]
+      })
 
       res.status(200).json({  answer:response.content,results: result });
     } catch (error) {
