@@ -361,9 +361,7 @@ v1Router.post('/query/:documentId',userMiddleware, async (req, res) => {
          res.status(400).json({ message: "Query is required" });
          return
     }
-    
     console.log(documentId,userId)
-  
     try {
       const embeddedQuery = await embeddings.embedQuery(query);
   

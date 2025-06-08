@@ -7,7 +7,7 @@ import { QdrantVectorStore } from "@langchain/qdrant";
 import { VertexAIEmbeddings } from "@langchain/google-vertexai";
 import { PrismaClient } from "@prisma/client";
 
-const tempDir = path.resolve(__dirname, "../temp");  // Adjusted to resolve from the root folder
+const tempDir = path.resolve(__dirname, "../temp"); 
 
 if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
@@ -45,7 +45,6 @@ export async function processAndStorePdf(pdfFilename: string,userId:string,docum
     });
 
     // Step 4: Store Embeddings in Qdrant
-
 
     const newDocumentWithChat = await client.document.create({
       data: {
