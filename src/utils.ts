@@ -68,3 +68,32 @@
 //         await deletePages(pdfAsBuffer,pagesToDelete)
 //     }
 // }
+
+
+// Add this function to create the required index
+export async function createQdrantIndex() {
+    try {
+      const { QdrantClient } = require('@qdrant/js-client-rest');
+      
+      const client = new QdrantClient({
+        url: 'https://7e9daebd-4c07-418d-b1a8-5bd57af51544.us-east4-0.gcp.cloud.qdrant.io:6333',
+        apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.iZCtkkHlZWTxlHQJZLGtxcnkR6kfDivX3nq8YrCHd08'
+      });
+  
+      // Create index for documentId field
+      await client.createPayloadIndex('pdf_embeddings', {
+        field_name: 'documentId',
+        field_schema: 'keyword' // or 'uuid' if your documentId is a UUID
+      });
+  
+      // Create index for userId field as well (since you're filtering on both)
+      await client.createPayloadIndex('pdf_embeddings', {
+        field_name: 'userId',
+        field_schema: 'keyword'
+      });
+  
+      console.log('Indexes created successfully');
+    } catch (error) {
+      console.error('Error creating indexes:', error);
+    }
+  }

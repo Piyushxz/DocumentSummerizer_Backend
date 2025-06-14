@@ -2,6 +2,7 @@ import express from "express"
 import { v1Router } from "./v1"
 import dotenv from "dotenv"
 import cors from 'cors'
+import { createQdrantIndex } from "./utils"
 
 
 const app = express()
